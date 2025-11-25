@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Happy Birthday — Personalized</title>
+  <style>
+    :root{--bg:#0f172a;--card:#0b1220;--accent:#ff7ab6}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial}
+    body{background:linear-gradient(180deg,#071029 0%, #0b1530 60%);color:#fff;display:flex;align-items:center;justify-content:center}
+    .card{width:min(1000px,96vw);min-height:520px;background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.02));border-radius:18px;padding:36px;box-shadow:0 8px 30px rgba(2,6,23,0.6);position:relative;overflow:hidden}
+    .message{display:flex;gap:28px;align-items:center}
+    .left{flex:1}
+    h1{font-size:clamp(28px,5vw,64px);margin:6px 0;line-height:1}
+    p.lead{opacity:0.9;margin:0 0 18px 0}
+    .name{color:var(--accent);text-shadow:0 6px 30px rgba(255,122,182,0.18)}
+    .cake{width:300px;height:300px;border-radius:18px;background:linear-gradient(135deg,#fff 0%,#ffdcdc 100%);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .controls{margin-top:18px;display:flex;gap:8px}
+    button{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.04);padding:10px 14px;border-radius:10px;color:#fff;cursor:pointer}
+    .small{font-size:13px;opacity:0.9}
+    .credit{position:absolute;left:18px;bottom:12px;font-size:12px;opacity:0.7}
+    /* confetti canvas covers card */
+    #confetti-canvas{position:absolute;inset:0;pointer-events:none}
+    /* responsive */
+    @media (max-width:720px){.message{flex-direction:column-reverse;gap:18px}.cake{width:220px;height:220px}}
+  </style>
+</head>
+<body>
+  <div class="card" role="main">
+    <canvas id="confetti-canvas"></canvas>
+    <div class="message">
+      <div class="left">
+        <p class="small">A special message just for you</p>
+        <h1>Happy Birthday, <span id="targetName" class="name">Friend</span> 🎉</h1>
+        <p class="lead" id="subtext">Wishing you a day filled with love, laughter and cake.</p>
+        <div class="controls">
+          <button id="playBtn">Play/Stop Music</button>
+          <button id="partyBtn">Start Party</button>
+          <button id="shareBtn">Copy Share Link</button>
+        </div>
+      </div>
+
+      <div class="cake" aria-hidden>
+        <svg width="180" height="180" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(10,10)">
+            <rect x="0" y="40" width="100" height="40" rx="8" fill="#fff" opacity="0.95"/>
+            <rect x="5" y="50" width="90" height="24" rx="6" fill="#ff7ab6"/>
+            <g transform="translate(35,8)">
+              <rect x="0" y="0" width="8" height="18" rx="2" fill="#ffef8a"/>
+              <rect x="14" y="0" width="8" height="18" rx="2" fill="#ffef8a"/>
+            </g>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <div class="credit">Made with ❤️ — edit the file to change the name or use <code>?name=YourName</code> in the URL</div>
+  </div>
+
+  <!-- Optional audio: replace 'music.mp3' with your file or a public link -->
+  <audio id="bgm" src="" preload="auto" loop></audio>
+
+  <script>
+    // --- Read name from query param or fallback ---
+    function getParam(key){
+      try{const u=new URL(location.href);return u.searchParams.get(key)}catch(e){return null}
+    }
+    const nameFromUrl = getParam('name') || '';
+    const defaultName = 'Friend';
+    const nameEl = document.getElementById('targetName');
+    const name = (nameFromUrl.trim().length>0) ? decodeURIComponent(nameFromUrl) : defaultName;
+    nameEl.textContent = name;
+
+    // --- Play/Stop music button ---
+    const bgm = document.getElementById('bgm');
+    const playBtn = document.getElementById('playBtn');
+    playBtn.addEventListener('click', ()=>{
+      if (!bgm.src){alert('No audio file set. Edit the HTML and add a file URL to the <audio> element.');return}
+      if (bgm.paused) bgm.play(); else bgm.pause();
+    });
+
+    // --- Share link copy ---
+    document.getElementById('shareBtn').addEventListener('click', async ()=>{
+      const u = new URL(location.href);
+      u.searchParams.set('name', name);
+      try{await navigator.clipboard.writeText(u.toString());alert('Share link copied to clipboard!')}catch(e){prompt('Copy this link:',u.toString())}
+    });
+
+    // --- Confetti (lightweight) ---
+    (function(){
+      const canvas = document.getElementById('confetti-canvas');
+      const ctx = canvas.getContext('2d');
+      let W, H, pieces=[];
+      function reset(){W=canvas.width=canvas.clientWidth;H=canvas.height=canvas.clientHeight}
+      window.addEventListener('resize', reset); reset();
+
+      function random(min,max){return Math.random()*(max-min)+min}
+      function makePiece(){return{ x: random(0,W), y: -10, size: random(6,14), wobble: random(0,2*Math.PI), speed: random(1,3), spin: random(-0.1,0.1), color: ['#ff7ab6','#ffd166','#8bd14b','#66d9ff'][Math.floor(Math.random()*4)], tilt: random(-0.5,0.5) }}
+      function spawn(n){for(let i=0;i<n;i++)pieces.push(makePiece())}
+      function update(){ctx.clearRect(0,0,W,H);for(let i=pieces.length-1;i>=0;i--){const p=pieces[i];p.y+=p.speed;p.x+=Math.sin(p.wobble)*2;p.wobble+=0.1;p.tilt+=p.spin;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.tilt);ctx.fillStyle=p.color;ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size);ctx.restore();if(p.y>H+20)pieces.splice(i,1)}requestAnimationFrame(update)}
+      update();
+
+      document.getElementById('partyBtn').addEventListener('click',()=>{spawn(80);if(bgm.src){bgm.play().catch(()=>{});}})
+    })();
+  </script>
+  <!-- Image Slideshow -->
+  <style>
+    .slideshow{margin-top:28px;text-align:center}
+    .slideshow img{max-width:320px;border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,0.4)}
+  </style>
+  <div class="slideshow">
+    <img id="slideImg" src="https://placekitten.com/400/400" alt="Slide" />
+  </div>
+  <script>
+    const slides=[
+      "https://placekitten.com/400/400",
+      "https://picsum.photos/400",
+      "https://placebear.com/400/400"
+    ];
+    let idx=0;
+    setInterval(()=>{
+      idx=(idx+1)%slides.length;
+      document.getElementById("slideImg").src=slides[idx];
+    },3000);
+  </script>
+</body>
+</html>
